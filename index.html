@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>CRO-BSI GBDT Prediction Calculator</title>
+  <style>
+    :root {
+      --bg: #f4f6f9; --card: #ffffff; --ink: #111827; --muted: #5b6b82; --line: #d5dbe5;
+      --primary: #3860e6; --low: #10b981; --high: #ef4444; --wait: #64748b;
+      --c-low: #52b3d0; --c-high: #de5450;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--bg); color: var(--ink);
+           font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+    .wrap { max-width: 1400px; margin: 0 auto; padding: 24px clamp(16px, 2vw, 24px) 40px; }
+    h1 { margin: 0 0 8px; font-size: clamp(26px, 3.2vw, 36px); line-height: 1.15; }
+    .subtitle { margin: 0 0 24px; color: var(--muted); font-size: 15px; }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; align-items: start; }
+    @media (max-width: 900px) { .grid { grid-template-columns: 1fr; } }
+    .card { background: var(--card); border: 1px solid #e3e8ef; border-radius: 12px; padding: 28px;
+            box-shadow: 0 1px 3px rgba(16, 24, 40, .06); }
+    .card h2 { margin: 0 0 18px; font-size: 22px; }
+    .fields { display: grid; grid-template-columns: 1fr 1fr; gap: 18px 28px; }
+    @media (max-width: 560px) { .fields { grid-template-columns: 1fr; } }
+    label { display: block; margin-bottom: 8px; font-size: 14px; font-weight: 700; color: #1f2a3b; }
+    input, select { width: 100%; height: 50px; padding: 0 14px; font-size: 16px; color: var(--ink);
+                    background: #fff; border: 1px solid var(--line); border-radius: 10px; }
+    input:focus, select:focus { outline: 2px solid #b6c6fb; border-color: var(--primary); }
+    .actions { display: flex; gap: 14px; margin-top: 26px; }
+    button { height: 50px; padding: 0 24px; font-size: 16px; font-weight: 700; border: 0; border-radius: 10px; cursor: pointer; }
+    #predictBtn { background: var(--primary); color: #fff; }
+    #resetBtn { background: #e5e7ec; color: var(--ink); }
+    button:disabled { opacity: .6; cursor: default; }
+    .badge { display: inline-block; padding: 10px 18px; border-radius: 999px; color: #fff; font-weight: 700; font-size: 16px; background: var(--wait); }
+    .badge.low { background: var(--low); }
+    .badge.high { background: var(--high); }
+    .badge.error { background: #b45309; }
+    #resultText { margin: 14px 0 6px; color: var(--muted); line-height: 1.6; font-size: 15px; }
+    .chart-box { display: flex; flex-direction: column; align-items: center; margin-top: 8px; }
+    .legend { display: flex; gap: 18px; margin-bottom: 8px; font-size: 14px; font-weight: 700; color: #5a5f6b; }
+    .legend i { display: inline-block; width: 28px; height: 12px; margin-right: 6px; vertical-align: middle; }
+    #donut { width: min(100%, 420px); height: auto; aspect-ratio: 1 / 1; }
+    .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 14px; }
+    .stat { border: 1px solid #e3e8ef; border-radius: 10px; padding: 12px 14px; }
+    .stat span { display: block; font-size: 13px; color: var(--muted); font-weight: 700; }
+    .stat b { font-size: 22px; }
+    .note { margin-top: 16px; font-size: 14px; color: var(--muted); }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>CRO-BSI GBDT Prediction Calculator</h1>
+    <p class="subtitle">Seven-variable CRO-BSI model using a calibrated GBDT classifier. Risk strata: &lt;<span data-cutoff></span>% low risk, &ge;<span data-cutoff></span>% high risk.</p>
+
+    <div class="grid">
+      <section class="card">
+        <h2>Input Variables</h2>
+        <form id="form" novalidate>
+          <div class="fields">
+            <div><label for="Age">Age</label><input id="Age" type="number" min="0" max="120" step="any" inputmode="decimal"></div>
+            <div><label for="Central Venous Catheter">Central Venous Catheter</label>
+              <select id="Central Venous Catheter"><option value="0">No</option><option value="1">Yes</option></select></div>
+            <div><label for="Refractory disease">Refractory disease</label>
+              <select id="Refractory disease"><option value="0">No</option><option value="1">Yes</option></select></div>
+            <div><label for="COPD">COPD</label>
+              <select id="COPD"><option value="0">No</option><option value="1">Yes</option></select></div>
+            <div><label for="Cancer">Cancer</label>
+              <select id="Cancer"><option value="0">No</option><option value="1">Yes</option></select></div>
+            <div><label for="Bcell">B cell (/&micro;l)</label><input id="Bcell" type="number" min="0" step="any" inputmode="decimal"></div>
+            <div><label for="Neutrophil">Neutrophil</label><input id="Neutrophil" type="number" min="0" step="any" inputmode="decimal"></div>
+          </div>
+          <div class="actions">
+            <button type="submit" id="predictBtn">Predict</button>
+            <button type="button" id="resetBtn">Reset</button>
+          </div>
+        </form>
+      </section>
+
+      <section class="card">
+        <h2>Prediction Result</h2>
+        <div id="badge" class="badge">Awaiting Prediction</div>
+        <p id="resultText">Enter all variables on the left and click Predict to generate the model output.</p>
+        <div class="chart-box">
+          <div class="legend">
+            <span><i style="background: var(--c-low)"></i>Low risk</span>
+            <span><i style="background: var(--c-high)"></i>High risk</span>
+          </div>
+          <canvas id="donut" width="840" height="840" role="img" aria-label="Predicted probability chart"></canvas>
+        </div>
+        <div class="stats">
+          <div class="stat"><span>Probability of CRO-BSI</span><b id="p1">&ndash;</b></div>
+          <div class="stat"><span>Probability of no CRO-BSI</span><b id="p0">&ndash;</b></div>
+        </div>
+        <div class="note" id="thresholdNote">Risk strata: &lt;<span data-cutoff></span>% low risk, &ge;<span data-cutoff></span>% high risk.</div>
+      </section>
+    </div>
+  </div>
+
+  <script src="model.js"></script>
+  <script>
+    const BINARY = new Set(["Central Venous Catheter", "Refractory disease", "COPD", "Cancer"]);
+    for (const el of document.querySelectorAll("[data-cutoff]")) el.textContent = Math.round(CRO_MODEL.risk_cutoff * 100);
+
+    function croPredict(values) {
+      const x = values.map(Math.fround);
+      let raw = CRO_MODEL.init;
+      for (const t of CRO_MODEL.trees) {
+        let n = 0;
+        while (t.l[n] !== -1) n = x[t.f[n]] <= t.t[n] ? t.l[n] : t.r[n];
+        raw += CRO_MODEL.learning_rate * t.v[n];
+      }
+      return 1 / (1 + Math.exp(CRO_MODEL.calibration.a * raw + CRO_MODEL.calibration.b));
+    }
+
+    function parseValue(raw, feature) {
+      const label = feature.replace("Bcell", "B cell");
+      if (raw === undefined || raw === null || String(raw).trim() === "") throw new Error("Missing value for " + label);
+      const value = Number(raw);
+      if (!Number.isFinite(value)) throw new Error("Invalid value for " + label);
+      if (BINARY.has(feature)) {
+        if (value !== 0 && value !== 1) throw new Error(label + " must be 0 or 1");
+      } else if (value < 0 || (feature === "Age" && value > 120)) {
+        throw new Error(label + " is out of range");
+      }
+      return value;
+    }
+
+    function predict(payload) {
+      const p1 = croPredict(CRO_MODEL.features.map((f) => parseValue(payload[f], f)));
+      const high = p1 >= CRO_MODEL.risk_cutoff;
+      return {
+        risk_level: high ? "high" : "low", risk_label: high ? "High Risk" : "Low Risk",
+        cutoff: CRO_MODEL.risk_cutoff, probability_class_1: p1, probability_class_0: 1 - p1,
+      };
+    }
+
+    const FIELDS = ["Age", "Central Venous Catheter", "Refractory disease", "COPD", "Cancer", "Bcell", "Neutrophil"];
+    const COLORS = { low: "#52b3d0", high: "#de5450" };
+    const badge = document.getElementById("badge");
+    const resultText = document.getElementById("resultText");
+    const canvas = document.getElementById("donut");
+    const ctx = canvas.getContext("2d");
+
+    function drawDonut(p1, centerText) {
+      const w = canvas.width, c = w / 2, r = w * 0.43, inner = w * 0.30;
+      ctx.clearRect(0, 0, w, w);
+      const parts = [[1 - p1, COLORS.low], [p1, COLORS.high]];
+      let start = -Math.PI / 2;
+      for (const [share, color] of parts) {
+        const end = start + share * 2 * Math.PI;
+        if (share > 0) {
+          ctx.beginPath(); ctx.moveTo(c, c); ctx.arc(c, c, r, start, end); ctx.closePath();
+          ctx.fillStyle = color; ctx.fill();
+        }
+        start = end;
+      }
+      ctx.save();
+      ctx.globalCompositeOperation = "destination-out";
+      ctx.beginPath(); ctx.arc(c, c, inner, 0, 2 * Math.PI); ctx.fill();
+      ctx.restore();
+      ctx.beginPath(); ctx.lineWidth = 6; ctx.strokeStyle = "#fff"; ctx.arc(c, c, r, 0, 2 * Math.PI); ctx.stroke();
+      if (centerText) {
+        ctx.fillStyle = "#111827"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+        ctx.font = "700 " + Math.round(w * 0.085) + "px -apple-system, Helvetica, Arial, sans-serif";
+        ctx.fillText(centerText, c, c);
+      }
+    }
+
+    function setState(cls, label, text) {
+      badge.className = "badge" + (cls ? " " + cls : "");
+      badge.textContent = label;
+      resultText.textContent = text;
+    }
+
+    function reset() {
+      for (const id of FIELDS) {
+        const el = document.getElementById(id);
+        el.value = el.tagName === "SELECT" ? "0" : "";
+      }
+      setState("", "Awaiting Prediction", "Enter all variables on the left and click Predict to generate the model output.");
+      document.getElementById("p1").textContent = "–";
+      document.getElementById("p0").textContent = "–";
+      drawDonut(0.5, "");
+    }
+
+    document.getElementById("resetBtn").addEventListener("click", reset);
+    document.getElementById("form").addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const payload = {};
+      for (const id of FIELDS) {
+        const value = document.getElementById(id).value.trim();
+        if (value === "") { setState("error", "Missing input", "Please fill in " + id.replace("Bcell", "B cell") + "."); return; }
+        payload[id] = value;
+      }
+      let result;
+      try {
+        result = predict(payload);
+      } catch (error) {
+        setState("error", "Input error", error.message);
+        return;
+      }
+      const p1 = result.probability_class_1, pct = (p1 * 100).toFixed(1) + "%";
+      setState(result.risk_level, result.risk_label,
+        "Predicted probability of CRO-BSI: " + pct + ". Risk strata: <" + Math.round(result.cutoff * 100) +
+        "% low risk, \u2265" + Math.round(result.cutoff * 100) + "% high risk.");
+      document.getElementById("p1").textContent = pct;
+      document.getElementById("p0").textContent = (result.probability_class_0 * 100).toFixed(1) + "%";
+      drawDonut(p1, pct);
+    });
+
+    drawDonut(0.5, "");
+  </script>
+</body>
+</html>
