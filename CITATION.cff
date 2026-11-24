@@ -1,0 +1,52 @@
+cff-version: 1.2.0
+message: "If you use this calculator or model, please cite it as below."
+type: software
+title: "CRO-BSI GBDT risk calculator"
+abstract: >-
+  Browser-based calculator for the seven-variable gradient boosting (GBDT) model that estimates the risk of
+  carbapenem-resistant organism bloodstream infection (CRO-BSI) in patients with hematological malignancies.
+  Accompanies the manuscript "Interpretable machine learning model for risk stratification of CRO-BSI and
+  triaging rapid mNGS in hematological malignancies: a multicenter study". The model was refitted from the
+  original development cohort after the original server was decommissioned. Research use only; not a medical device.
+version: 1.0.0
+date-released: 2026-11-24
+license: MIT
+url: "https://cro-bsi.github.io/"
+repository-code: "https://github.com/cro-bsi/cro-bsi.github.io"
+keywords:
+  - CRO-BSI
+  - hematological malignancies
+  - machine learning
+  - gradient boosting
+  - risk calculator
+authors:
+  - family-names: Qian
+    given-names: Wensi
+    affiliation: "Department of Hematology, Huadong Hospital Affiliated with Fudan University, Shanghai, China"
+  - family-names: Zhang
+    given-names: Miao
+    affiliation: "Department of Hematology, Huadong Hospital Affiliated with Fudan University, Shanghai, China"
+  - family-names: Wan
+    given-names: Jiangbo
+    affiliation: "Department of Hematology, Xinhua Hospital Affiliated with Shanghai Jiao Tong University School of Medicine, Shanghai, China"
+  - family-names: Wang
+    given-names: Qinyang
+    affiliation: "College of Computer Science and Technology, Tongji University, Shanghai, China"
+  - family-names: Yu
+    given-names: Zhaoyan
+    affiliation: "School of Medicine, Tongji University, Shanghai, China"
+  - family-names: Mao
+    given-names: Richeng
+    affiliation: "Department of Infectious Diseases, Huashan Hospital Affiliated with Fudan University, Shanghai, China"
+  - family-names: Zhu
+    given-names: Hongming
+    affiliation: "College of Computer Science and Technology, Tongji University, Shanghai, China"
+  - family-names: Zhang
+    given-names: Wenjun
+    affiliation: "Department of Hematology, Tongji Hospital Affiliated with Tongji University, Shanghai, China"
+  - family-names: Liang
+    given-names: Aibin
+    affiliation: "Department of Hematology, Tongji Hospital Affiliated with Tongji University, Shanghai, China"
+  - family-names: Ma
+    given-names: Jiexian
+    affiliation: "Department of Hematology, Huadong Hospital Affiliated with Fudan University, Shanghai, China"
